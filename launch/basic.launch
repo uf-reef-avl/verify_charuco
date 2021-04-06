@@ -1,0 +1,23 @@
+<launch>
+
+    <arg name="play_bag" default="true"/>
+    <arg name="run_rviz" default="true"/>
+
+    <group if="$(arg play_bag)">
+        <arg name="bag_path" default="/home/prashant/Downloads/turtlebot_tracking/extrinsic_calib_2019-05-02-11-01-01.bag"/><!--put the path of your bag-->
+        <node pkg="rosbag" type="play" name="player" output="screen" args="--clock --pause $(arg bag_path)"/>
+    </group>
+
+    <rosparam command="load" file="$(find verify_aruco)/params/body_to_camera.yaml" />
+    <node pkg="verify_aruco" name="verify_aruco_tf" type="verify_aruco" output="screen">
+        <remap from="tf_cam" to="tf_cam/nwu/pose_stamped"/>
+        <remap from="tf_calib" to="tf_calib/nwu/pose_stamped"/>
+        <rosparam name="azimuth_threshold" value="0.43"/> <!--yaw detection threshold in rad-->
+        <rosparam name="elevation_threshold" value="0.43"/> <!-- x,y detection threshold in rad-->
+        <rosparam name="z_threshold" value="1.0"/> <!--altitude detection threshold in meter-->
+    </node>
+
+    <node pkg="rviz" type="rviz" name="rviz" output="screen"
+          args="-d $(find verify_aruco)/rviz/aruco_verify.rviz" if="$(arg run_rviz)"/>
+
+</launch>

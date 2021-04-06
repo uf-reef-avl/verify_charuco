@@ -1,0 +1,73 @@
+<launch>
+
+    <arg name="play_bag" default="false"/>
+    <arg name="run_rviz" default="false"/>
+
+
+
+    <arg name="driver_openni2" value="false"/>
+    <arg name="driver_astra" value="false"/>
+    <arg name="driver_realsense" value="true"/>
+
+
+
+
+  <arg name="result_display" default="true"/>
+    <arg name="result_autosize" default="true"/>
+    <arg name="result_draw_markers" default="true" />
+    <arg name="result_draw_axis" default="true" />
+    <arg name="publish_corners" default="false" />
+    <arg name="publish_tf" default="true" />
+    <!--    Size of the aruco Square-->
+    <arg name="marker_length" default="0.0225" />
+    <!--    Size of the checkboard square-->
+    <arg name="square_length" default="0.045" />
+    <arg name="x_square" default="6" />
+    <arg name="y_square" default="4" />
+    <arg name="num_marker" default="15" />
+    <arg name="dictionary_id" default="0" />
+
+        <include file="$(find realsense2_camera)/launch/rs_camera.launch"/>
+        <arg name="camera_info" default="file://$(env HOME)/.ros/camera_info.yaml"/>
+
+    <node ns="/" pkg="charuco_ros" type="node" name="charuco_node" output="screen">
+        <remap from="/camera_info" to="/camera/rgb/camera_info" if="$(arg driver_astra)"/>
+        <remap from="/image" to="/camera/rgb/image_raw" if="$(arg driver_astra)"/>
+        <remap from="/camera_info" to="/camera/rgb/camera_info" if="$(arg driver_openni2)"/>
+        <remap from="/image" to="/camera/rgb/image_raw" if="$(arg driver_openni2)"/>
+        <remap from="/camera_info" to="/camera/color/camera_info" if="$(arg driver_realsense)"/>
+        <remap from="/image" to="/camera/color/image_raw" if="$(arg driver_realsense)"/>
+        <param name="draw_markers" type="bool" value="$(arg result_draw_markers)" />
+        <param name="draw_axis" type="bool" value="$(arg result_draw_axis)" />
+        <param name="publish_tf" value="$(arg publish_tf)" />
+        <param name="publish_corners" value="$(arg publish_corners)" />
+        <param name="marker_length" value="$(arg marker_length)" />
+        <param name="square_length" value="$(arg square_length)" />
+        <param name="x_square" value="$(arg x_square)" />
+        <param name="y_square" value="$(arg y_square)" />
+        <param name="num_marker" value="$(arg num_marker)" />
+        <param name="dictionary_id" value="$(arg dictionary_id)" />
+    </node>
+
+
+<node pkg="ros_vrpn_client" name="tf_calib" type="ros_vrpn_client" args="_vrpn_server_ip:=192.168.1.104" required="true" output="screen"/>
+
+<node pkg="ros_vrpn_client" name="tf_cam" type="ros_vrpn_client" args="_vrpn_server_ip:=192.168.1.104" required="true" output="screen"/>
+
+    <rosparam command="load" file="$(find verify_aruco)/params/body_to_camera.yaml" />
+    <node pkg="verify_aruco" name="verify_aruco_tf" type="verify_aruco" output="screen">
+	        <remap from="tf_cam" to="tf_cam/nwu/pose_stamped"/>
+        <remap from="tf_calib" to="tf_calib/nwu/pose_stamped"/>
+        <param name="azimuth_threshold" value="0.43"/> <!--yaw detection threshold in rad-->
+        <param name="elevation_threshold" value="0.43"/> <!-- x,y detection threshold in rad-->
+        <param name="z_threshold" value="1.0"/> <!--altitude detection threshold in meter-->
+    </node>
+
+
+    <node pkg="rviz" type="rviz" name="rviz" output="screen"
+          args="-d $(find verify_aruco)/rviz/aruco_verify.rviz" if="$(arg run_rviz)"/>
+
+
+</launch>
+
+
